@@ -1,0 +1,6 @@
+[submodule "external/ubpf"]
+	path = external/ubpf
+	url = https://github.com/delilah-csp/ubpf
+[submodule "external/delilah"]
+	path = external/delilah
+	url = https://github.com/mortentc/delilah_verification.git
