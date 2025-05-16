@@ -1,0 +1,7 @@
+{
+    "sarif-viewer.connectToGithubCodeScanning": "off",
+    "files.associations": {
+        ".als.json": "jsonc",
+        "time.h": "c"
+    }
+}
