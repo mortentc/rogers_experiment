@@ -6,7 +6,7 @@ add_executable(rogers_experiment main.c)
 # add_subdirectory(external/delilah)
 add_subdirectory(external/ubpf/vm)
 # include_directories(external/delilah/include)
-include_directories(external/ubpf/vm/inc)
+include_directories(external/ubpf/vm/inc external/ubpf/vm)
 
 file(GLOB VM_SOURCE "external/ubpf/vm/*.c")
 file(GLOB VERIF_FUNCS "external/delilah/delilah/programs/verified_funcs/*.c")

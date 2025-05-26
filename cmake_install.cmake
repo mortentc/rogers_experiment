@@ -1,4 +1,4 @@
-# Install script for directory: /home/mocl/rogers_experiment
+# Install script for directory: /home/morten/rogers_experiment
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,7 +44,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/mocl/rogers_experiment/external/ubpf/vm/cmake_install.cmake")
+  include("/home/morten/rogers_experiment/external/ubpf/vm/cmake_install.cmake")
 
 endif()
 
@@ -56,5 +56,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/mocl/rogers_experiment/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/morten/rogers_experiment/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
