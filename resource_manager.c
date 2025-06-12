@@ -25,7 +25,7 @@ struct req_queue {
     obtain_triplet triplets[12];
     int first, last;
 };
-s
+
 struct rel_queue {
     request_set reqs[12];
     int first, last;
