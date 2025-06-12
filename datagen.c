@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#define DATA_SIZE 1000000
+#define DATA_SIZE 100000000
 
 int data[DATA_SIZE];
 uint32_t indices[DATA_SIZE / 2];

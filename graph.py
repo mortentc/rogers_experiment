@@ -4,7 +4,7 @@ import numpy as np
 fig, ax = plt.subplots()
 plt.ylabel("Throughput [MB/s]")
 
-indices = 10**6 / 2
+indices = 10**8 / 2
 
 with open("data/results.txt") as results:
     ys = list(map(lambda y: round(indices*8/float(y)/10**3), results.readlines()))

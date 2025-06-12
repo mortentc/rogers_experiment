@@ -8,12 +8,12 @@
 #include "external/delilah/delilah/programs/roger_programs/roger_aggregate_by_pos.c"
 #include "external/delilah/delilah/programs/aggregate_by_pos.c"
 
-#define DATA_SIZE 1000000
-#define RUNS 100
+#define DATA_SIZE 100000000
+#define RUNS 10
 
 void dummy(void){return;}
-struct mem_range *obtain(struct request *reqs, int num){
-    struct mem_range *dummy = malloc(sizeof(struct mem_range));
+mem_range *obtain(struct request *reqs, int num){
+    mem_range *dummy = malloc(sizeof(mem_range));
     dummy->ptr = (char*)malloc(12);
     dummy->length = 12;
     return dummy;
@@ -57,7 +57,7 @@ int main(){
     fclose(data);
 
     FILE *log = fopen("data/results.txt", "w");
-
+    char out[10];
     // Execute program
     uint64_t result;
     clock_t start, finish;
@@ -66,11 +66,13 @@ int main(){
         start = clock();
         ubpf_exec(vm, input, data_sz, &result, NULL, 0);
         finish = clock();
+        sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
+        fwrite(out, strlen(out), 1, log);
         aggr_time += finish - start;
     }
-    char out[10];
-    sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
-    fwrite(out, strlen(out), 1, log);
+    
+    // sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+    // fwrite(out, strlen(out), 1, log);
     // float start = (float)clock();
     // ubpf_exec(vm, input, data_sz, &result, NULL, 0);
     // float finish = (float)clock();
@@ -86,10 +88,12 @@ int main(){
         start = clock();
         roger_prog(input);
         finish = clock();
+        sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
+        fwrite(out, strlen(out), 1, log);
         aggr_time += finish - start;
     }
-    sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
-    fwrite(out, strlen(out), 1, log);
+    // sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+    // fwrite(out, strlen(out), 1, log);
     //printf("Execution result: %d\n", input->result);
     printf("Time taken [CompVerif]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
 
@@ -133,20 +137,24 @@ int main(){
             start = clock();
             ubpf_exec(vm, op, data_sz, &result, shared, DATA_SIZE*sizeof(int));
             finish = clock();
+            sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
+            fwrite(out, strlen(out), 1, log);
             aggr_time += finish - start;
         }
-        sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
-        fwrite(out, strlen(out), 1, log);
+        // sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+        // fwrite(out, strlen(out), 1, log);
         printf("Time taken [VmOld]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
         aggr_time = 0;
         for(int i = 0; i<RUNS; i++){
             start = clock();
             prog(op, data_sz, shared, DATA_SIZE*sizeof(int));
             finish = clock();
+            sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
+            fwrite(out, strlen(out), 1, log);
             aggr_time += finish - start;
         }
-        sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
-        fwrite(out, strlen(out), 1, log);
+        // sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+        // fwrite(out, strlen(out), 1, log);
         printf("Time taken [CompOld]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
         // start = clock();
         // prog(op, data_sz, shared, DATA_SIZE*sizeof(int));
