@@ -141,10 +141,31 @@ void handle_release(){
     int was_released = releases.first != releases.last;
     while(releases.first != releases.last){
         request_set reqs = dequeue_rel(&releases);
-        //unlock(reqs);
+        unlock(reqs);
     }
     if(was_released){
         //traverse standbyqueue;
+    }
+}
+
+// allocate_shared();
+
+void unlock(request_set reqs){
+    for(int i = 0; i<reqs.count; i++){
+        request cur = reqs.reqs[i];
+        struct future_list_entry *f = lookup_future(cur.id);
+        //pop(f->future)
+        if(cur.p == Write){
+            f->next_write = INT32_MAX;
+            struct time_item *next = f->future->next;
+            while(next != NULL){
+                if(next->p == Write){
+                    f->next_write = next->local_time;
+                    break;
+                }
+                next = next->next;
+            }
+        }
     }
 }
 
