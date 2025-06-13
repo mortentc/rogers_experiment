@@ -12,8 +12,8 @@
 #define RUNS 10
 
 void dummy(void){return;}
-mem_range *obtain(struct request *reqs, int num){
-    mem_range *dummy = malloc(sizeof(mem_range));
+mem_rng *obtain(struct request *reqs, int num){
+    mem_rng *dummy = malloc(sizeof(mem_rng));
     dummy->ptr = (char*)malloc(12);
     dummy->length = 12;
     return dummy;
