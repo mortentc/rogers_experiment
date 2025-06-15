@@ -7,16 +7,22 @@
 #include <delilah.h>
 #include "external/delilah/delilah/programs/roger_programs/roger_aggregate_by_pos.c"
 #include "external/delilah/delilah/programs/aggregate_by_pos.c"
+#include "resource_manager.c"
 
 #define DATA_SIZE 100000000
 #define RUNS 10
 
 void dummy(void){return;}
 mem_rng *obtain(struct request *reqs, int num){
-    mem_rng *dummy = malloc(sizeof(mem_rng));
-    dummy->ptr = (char*)malloc(12);
-    dummy->length = 12;
-    return dummy;
+    obtain_triplet *triplet = malloc(sizeof(obtain_triplet));
+    mem_rng *res = malloc(num * sizeof(mem_rng));
+    triplet->reqs = reqs;
+    triplet->res = res;
+    int flag = 0; triplet->flag = &flag;
+    enqueue_req(&arrivals, triplet);
+    while(!flag){/* wait */}
+    free(triplet);
+    return res;
 };
 
 int main(){
