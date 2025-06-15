@@ -1,6 +1,7 @@
 #include "external/delilah/include/verified_functions.h"
 #include <pthread.h>
 #include <malloc.h>
+#include <stdlib.h>
 
 #define CORES 12
 #define MAX_REGIONS 50
@@ -50,15 +51,30 @@ struct future_list_entry {
     future_list *first, *last;
 };
 
+struct hash_map_region
+{
+    struct region_item {
+        int id; char *addr; int length; struct region_item *next;
+    }* bins[MAX_REGIONS];
+};
+
+struct hash_map_future {
+    struct fut_item {
+        struct future_list_entry *list; struct fut_item *next;
+    }* bins[MAX_REGIONS];
+};
+
 struct arr_queue arrivals;
 struct stb_queue standby;
 struct rel_queue releases;
-struct future_list_entry* future_lists[MAX_REGIONS];
+struct hash_map_future future_lists;
+struct hash_map_region regions;
 int global_time = 1;
 
 void pop_future(struct future_list_entry *fut_list){
     void *to_free = fut_list->first;
     fut_list->first = fut_list->first->next;
+    if(fut_list->first == NULL) fut_list->last = NULL;
     free(to_free);
 }
 
@@ -66,14 +82,25 @@ void append_future(struct future_list_entry *fut_list, permission p, int local_t
     future_list *node = malloc(sizeof(future_list));
     node->p = p; node->local_time = local_time;
     if(fut_list->last != NULL) fut_list->last->next = node;
+    else fut_list->first = node;
     fut_list->last = node;
 }
 
 struct future_list_entry* lookup_future(int id){
-    int i = id % MAX_REGIONS;
-    while(future_lists[i] != NULL && future_lists[i]->id != id)
-        i = (i+1) % MAX_REGIONS;
-    return future_lists[i];
+    struct fut_item *first = future_lists.bins[id % MAX_REGIONS];
+    while(first->list->id != id) first = first->next;
+    return first->list;
+}
+
+void new_future(int id){
+    struct fut_item *new = malloc(sizeof(struct fut_item));
+    struct future_list_entry *node = malloc(sizeof(struct future_list_entry));
+    new->list = node;
+    node->id = id;
+    node->next_write = 0;
+    append_future(node, Write, 0);
+    new->next = future_lists.bins[id % MAX_REGIONS];
+    future_lists.bins[id % MAX_REGIONS] = new;
 }
 
 void enqueue_req(struct arr_queue *q, obtain_triplet obs){
@@ -81,6 +108,27 @@ void enqueue_req(struct arr_queue *q, obtain_triplet obs){
     node->triplet = obs;
     if(q->last != NULL) q->last->next = node;
     q->last = node;
+}
+
+struct region_item* lookup_region(int id){
+    struct region_item *cur = regions.bins[id % MAX_REGIONS];
+    while(cur->id != id) cur = cur->next;
+    return cur;
+}
+
+void new_region(int id, char *addr, int length){
+    struct region_item *node = malloc(sizeof(struct region_item));
+    node->addr = addr;
+    node->length = length;
+    node->id = id;
+    node->next = regions.bins[id % MAX_REGIONS];
+    regions.bins[id % MAX_REGIONS] = node;
+}
+
+int region_exists(int id){
+    for(struct region_item *cur = regions.bins[id % MAX_REGIONS]; cur != NULL; cur = cur->next)
+        if(cur->id == id) return 1;
+    return 0;
 }
 
 obtain_triplet dequeue_req(struct arr_queue *q){
@@ -116,9 +164,6 @@ request_set dequeue_rel(struct rel_queue *q){
 
 int min(int a, int b) { return a < b ? a : b; }
 
-void init_manager(){
-}
-
 int can_be_granted(request_set *reqs, int local_time){
     for(int i = 0; i<reqs->count; i++){
         int next_conflict = 0;
@@ -133,10 +178,10 @@ int can_be_granted(request_set *reqs, int local_time){
     return 1;
 } 
 
-
 void acquire(obtain_triplet trip){
     for(int i = 0; i<trip.reqs.count; i++){
-        //append_regions(res, regions)
+        struct region_item *cur = lookup_region(trip.reqs.reqs[i].id);
+        trip.res[i].ptr = cur->addr; trip.res[i].length = cur->length;
     }
     *trip.flag = 1;
 }
@@ -145,10 +190,10 @@ void handle_arrival(){
     if(arrivals.first != arrivals.last){
         obtain_triplet trip = dequeue_req(&arrivals);
         for(int i = 0; i<trip.reqs.count; i++){
-            //if (member(trip.reqs.reqs[i], regions)) {
-            *trip.flag = -1;
-            break;
-            //}
+            if (!region_exists(trip.reqs.reqs[i].id)) {
+                *trip.flag = -1;
+                break;
+            }
         }
         if(*trip.flag != -1){
             for(int i = 0; i<trip.reqs.count; i++){
@@ -184,6 +229,14 @@ void unlock(request_set reqs){
     }
 }
 
+#define MAGIC_NUM 100
+int id_seed = 0;
+int new_id(){
+    int id = rand() % MAGIC_NUM + id_seed;
+    id_seed += MAGIC_NUM;
+    return id;
+}
+
 void handle_release(){
     int was_released = releases.first != releases.last;
     while(releases.first != releases.last){
@@ -206,7 +259,16 @@ void handle_release(){
     }
 }
 
-// allocate_shared();
+int allocate_shared(int length, mem_rng *res){
+    char *addr = malloc(length);
+    int id = new_id();
+    new_region(id, addr, length);
+    new_future(id);
+    res->ptr = addr; res->length = length;
+    return id;
+}
+
+// free_shared();
 
 void main_routine(){
     while(1){
