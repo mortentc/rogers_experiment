@@ -5,6 +5,7 @@
 
 #define CORES 12
 #define MAX_REGIONS 50
+#define DEBUG
 
 typedef struct req_set {
     int count;
@@ -107,6 +108,7 @@ void enqueue_req(struct arr_queue *q, obtain_triplet obs){
     struct triplet_node *node = malloc(sizeof(struct triplet_node));
     node->triplet = obs;
     if(q->last != NULL) q->last->next = node;
+    else q->first = node;
     q->last = node;
 }
 
@@ -132,9 +134,19 @@ int region_exists(int id){
 }
 
 obtain_triplet dequeue_req(struct arr_queue *q){
+    #ifdef DEBUG
+        printf("Starting dequeue\n");
+    #endif
     obtain_triplet res = q->first->triplet;
+    #ifdef DEBUG
+        printf("Triplet dequeued\n");
+    #endif
     void *to_free = q->first;
     q->first = q->first->next;
+    if(q->first == NULL) q->last = NULL;
+    #ifdef DEBUG
+        printf("Trying to free memory\n");
+    #endif
     free(to_free);
     return res;
 }
@@ -144,6 +156,7 @@ void enqueue_stb(struct stb_queue *q, obtain_triplet obs, int local_time){
     node->triplet = obs;
     node->local_time = local_time;
     if(q->last != NULL) q->last->next = node;
+    else q->first = node;
     q->last = node;
 }
 
@@ -151,6 +164,7 @@ void enqueue_rel(struct rel_queue *q, request_set reqs){
     struct req_set_node *node = malloc(sizeof(struct req_set_node));
     node->reqs = reqs;
     if(q->last != NULL) q->last->next = node;
+    else q->first = node;
     q->last = node;
 }
 
@@ -158,6 +172,7 @@ request_set dequeue_rel(struct rel_queue *q){
     request_set res = q->first->reqs;
     void *to_free = q->first;
     q->first = q->first->next;
+    if(q->first == NULL) q->last = NULL;
     free(to_free);
     return res;
 }
@@ -172,9 +187,14 @@ int can_be_granted(request_set *reqs, int local_time){
 
         if(cur.p == Read) next_conflict = f->next_write;
         else next_conflict = f->first->local_time;
-
+        #ifdef DEBUG
+            printf("Next conflict at: %d\n", next_conflict);
+        #endif
         if(local_time > next_conflict) return 0;
     }
+    #ifdef DEBUG
+            printf("Request can be granted\n");
+    #endif
     return 1;
 } 
 
@@ -187,8 +207,14 @@ void acquire(obtain_triplet trip){
 }
 
 void handle_arrival(){
-    if(arrivals.first != arrivals.last){
+    if(arrivals.first != NULL){
+        #ifdef DEBUG
+            printf("Arrival queue is not empty. Processing...\n");
+        #endif
         obtain_triplet trip = dequeue_req(&arrivals);
+        #ifdef DEBUG
+            printf("Found request for region %d\n", trip.reqs.reqs[0].id);
+        #endif
         for(int i = 0; i<trip.reqs.count; i++){
             if (!region_exists(trip.reqs.reqs[i].id)) {
                 *trip.flag = -1;
@@ -238,8 +264,11 @@ int new_id(){
 }
 
 void handle_release(){
-    int was_released = releases.first != releases.last;
-    while(releases.first != releases.last){
+    int was_released = releases.first != NULL;
+    while(releases.first != NULL){
+        #ifdef DEBUG
+            printf("Trying to release\n");
+        #endif
         request_set reqs = dequeue_rel(&releases);
         unlock(reqs);
     }
@@ -262,8 +291,17 @@ void handle_release(){
 int allocate_shared(int length, mem_rng *res){
     char *addr = malloc(length);
     int id = new_id();
+    #ifdef DEBUG
+        printf("Creating new region.\n");
+    #endif
     new_region(id, addr, length);
+    #ifdef DEBUG
+        printf("Creating new future list.\n");
+    #endif
     new_future(id);
+    #ifdef DEBUG
+        printf("Success!\n");
+    #endif
     res->ptr = addr; res->length = length;
     return id;
 }

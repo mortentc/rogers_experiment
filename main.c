@@ -9,7 +9,7 @@
 #include "external/delilah/delilah/programs/aggregate_by_pos.c"
 #include "resource_manager.c"
 
-#define DATA_SIZE 10000
+#define DATA_SIZE 1000
 #define RUNS 10
 
 void dummy(void){return;}
@@ -28,6 +28,7 @@ mem_rng *obtain(request *reqs, int len){
     while(!flag){/* wait */}
     printf("Waiting done\n");
     free(triplet);
+    printf("Length of first region: %d\n", res[0].length);
     return res;
 };
 
@@ -68,6 +69,37 @@ int main(){
     FILE *data = fopen("data/elements.dat", "rb");
     fread(input->dynamic, 4, DATA_SIZE*3/2, data);
     fclose(data);
+
+    // Prepare shared regions
+    mem_rng dummy;
+    int element_id = allocate_shared(sizeof(int) * DATA_SIZE, &dummy);
+    memcpy(dummy.ptr, input->dynamic, dummy.length);
+    int idx_id = allocate_shared(sizeof(uint32_t) * DATA_SIZE/2, &dummy);
+    memcpy(dummy.ptr, (input->dynamic)+(input->element_size), dummy.length);
+    printf("Index values:\n");
+    for(int i = 0; i<DATA_SIZE; i++)
+        printf("Index %d: %d\n", i, ((uint32_t*)dummy.ptr)[i]);
+    request_set dummy_reqs;
+    request reqs[2] = {{element_id, Write}, {idx_id, Write}};
+    dummy_reqs.reqs = reqs;
+    dummy_reqs.count = 2;
+    enqueue_rel(&releases, dummy_reqs);
+    printf("Release successful\n");
+    
+    {
+        #include "external/delilah/delilah/programs/roger_programs/roger_aggregate_by_pos_shared.c"
+        1;
+
+        
+        struct layout input;
+        input.element_req = element_id;
+        input.index_req = idx_id;
+        clock_t start, finish;
+        start = clock();
+        roger_prog(&input);
+        finish = clock();
+        printf("Time taken [Shared] %.3f ms\n", (double)(finish-start)/CLOCKS_PER_SEC*1000);
+    }
 
     FILE *log = fopen("data/results.txt", "w");
     char out[10];
