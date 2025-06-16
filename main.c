@@ -9,18 +9,24 @@
 #include "external/delilah/delilah/programs/aggregate_by_pos.c"
 #include "resource_manager.c"
 
-#define DATA_SIZE 100000000
+#define DATA_SIZE 10000
 #define RUNS 10
 
 void dummy(void){return;}
-mem_rng *obtain(struct request *reqs, int num){
+mem_rng *obtain(request *reqs, int len){
+    if(len == 0) return NULL;
     obtain_triplet *triplet = malloc(sizeof(obtain_triplet));
-    mem_rng *res = malloc(num * sizeof(mem_rng));
-    triplet->reqs = reqs;
+    mem_rng *res = malloc(len * sizeof(mem_rng));
+    request_set *set = malloc(sizeof(request_set));
+    set->reqs = reqs;
+    set->count = len;
+    triplet->reqs = *set;
     triplet->res = res;
     int flag = 0; triplet->flag = &flag;
-    enqueue_req(&arrivals, triplet);
+    enqueue_req(&arrivals, *triplet);
+    printf("Waiting\n");
     while(!flag){/* wait */}
+    printf("Waiting done\n");
     free(triplet);
     return res;
 };
@@ -28,6 +34,7 @@ mem_rng *obtain(struct request *reqs, int num){
 int main(){
     // Setup Ubpf VM
     struct ubpf_vm* vm = ubpf_create();
+    pthread_t *manager = init_manager();
     ubpf_register(vm, 2, "obtain", &obtain);
     int res = ubpf_register(vm, 1, "aggregate_by_pos", &aggregate_by_pos);
     printf("Registering code: %s\n", res ? "failed" : "succeeded");
@@ -175,6 +182,7 @@ int main(){
     }
 
     // Clean up
+    destroy_manager(manager);
     free(input);
     free(ebpf);
     free(err);

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.12.2)
 project(rogers_experiment VERSION 0.1.0 LANGUAGES C)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+
 add_executable(rogers_experiment main.c)
 
 # add_subdirectory(external/delilah)
@@ -15,4 +19,5 @@ add_library(vm ${VM_SOURCE})
 add_library(funcs ${VERIF_FUNCS})
 add_library(manager "resource_manager.c")
 target_link_libraries(rogers_experiment PRIVATE vm funcs manager)
+target_link_libraries(rogers_experiment PRIVATE Threads::Threads)
 target_include_directories(rogers_experiment PRIVATE external/delilah/include external/delilah/delilah)

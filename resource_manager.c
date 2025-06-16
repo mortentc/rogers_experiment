@@ -270,9 +270,23 @@ int allocate_shared(int length, mem_rng *res){
 
 // free_shared();
 
-void main_routine(){
+void* main_routine(){
     while(1){
+        // printf("Arrival\n");
         handle_arrival();
+        // printf("Release\n");
         handle_release();
+        // printf("Repeat\n");
     }
+}
+
+pthread_t *init_manager(){
+    pthread_t *t = malloc(sizeof(pthread_t));
+    pthread_create(t, NULL, main_routine, NULL);
+    return t;
+}
+
+void destroy_manager(pthread_t *t){
+    pthread_cancel(*t);
+    free(t);
 }
