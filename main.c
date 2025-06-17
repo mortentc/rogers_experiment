@@ -9,7 +9,7 @@
 #include "external/delilah/delilah/programs/aggregate_by_pos.c"
 #include "resource_manager.c"
 
-#define DATA_SIZE 1000
+#define DATA_SIZE 1000000
 #define RUNS 10
 
 void dummy(void){return;}
@@ -76,9 +76,12 @@ int main(){
     memcpy(dummy.ptr, input->dynamic, dummy.length);
     int idx_id = allocate_shared(sizeof(uint32_t) * DATA_SIZE/2, &dummy);
     memcpy(dummy.ptr, (input->dynamic)+(input->element_size), dummy.length);
-    printf("Index values:\n");
-    for(int i = 0; i<DATA_SIZE; i++)
-        printf("Index %d: %d\n", i, ((uint32_t*)dummy.ptr)[i]);
+    // printf("Index values:\n");
+    // for(int i = 0; i<DATA_SIZE/2; i++)
+    //     printf("Index %d: %d, should be %d\n", i,
+    //         ((uint32_t*)dummy.ptr)[i],
+    //         ((uint32_t*)((input->dynamic)+(input->element_size)))[i]
+    //     );
     request_set dummy_reqs;
     request reqs[2] = {{element_id, Write}, {idx_id, Write}};
     dummy_reqs.reqs = reqs;
@@ -99,6 +102,7 @@ int main(){
         roger_prog(&input);
         finish = clock();
         printf("Time taken [Shared] %.3f ms\n", (double)(finish-start)/CLOCKS_PER_SEC*1000);
+        // printf("Result of shared: %d\n", input.result);
     }
 
     FILE *log = fopen("data/results.txt", "w");
@@ -124,6 +128,7 @@ int main(){
     //printf("Execution result: %d\n", input->result);
     // printf("Length of shared region: %ld\n", result);
     printf("Time taken [MixedVerif]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+    // printf("Result of mixed: %d\n", input->result);
 
     // start = (float)clock();
     // roger_prog(input);

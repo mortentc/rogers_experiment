@@ -5,7 +5,7 @@
 
 #define CORES 12
 #define MAX_REGIONS 50
-#define DEBUG
+// #define DEBUG
 
 typedef struct req_set {
     int count;
@@ -283,8 +283,8 @@ int new_id(){
 }
 
 void handle_release(){
-    int was_released = releases.first != NULL;
-    while(releases.first != NULL){
+    int was_released = releases.last != NULL;
+    while(releases.last != NULL){
         #ifdef DEBUG
             printf("Trying to release\n");
         #endif
@@ -329,11 +329,8 @@ int allocate_shared(int length, mem_rng *res){
 
 void* main_routine(){
     while(1){
-        // printf("Arrival\n");
         handle_arrival();
-        // printf("Release\n");
         handle_release();
-        // printf("Repeat\n");
     }
 }
 
