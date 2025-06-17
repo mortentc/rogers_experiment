@@ -81,9 +81,18 @@ void pop_future(struct future_list_entry *fut_list){
 
 void append_future(struct future_list_entry *fut_list, permission p, int local_time){
     future_list *node = malloc(sizeof(future_list));
-    node->p = p; node->local_time = local_time;
+    #ifdef DEBUG
+        printf("New node\n");
+    #endif
+    node->p = p; node->local_time = local_time; node->next=NULL;
+    #ifdef DEBUG
+        printf("Updating pointers\n");
+    #endif
     if(fut_list->last != NULL) fut_list->last->next = node;
     else fut_list->first = node;
+    #ifdef DEBUG
+        printf("Node appended\n");
+    #endif
     fut_list->last = node;
 }
 
@@ -96,17 +105,25 @@ struct future_list_entry* lookup_future(int id){
 void new_future(int id){
     struct fut_item *new = malloc(sizeof(struct fut_item));
     struct future_list_entry *node = malloc(sizeof(struct future_list_entry));
+    #ifdef DEBUG
+        printf("Init list\n");
+    #endif
     new->list = node;
+    new->next = NULL;
     node->id = id;
     node->next_write = 0;
+    node->first = NULL; node->last = NULL;
     append_future(node, Write, 0);
+    #ifdef DEBUG
+        printf("Future list created\n");
+    #endif
     new->next = future_lists.bins[id % MAX_REGIONS];
     future_lists.bins[id % MAX_REGIONS] = new;
 }
 
 void enqueue_req(struct arr_queue *q, obtain_triplet obs){
     struct triplet_node *node = malloc(sizeof(struct triplet_node));
-    node->triplet = obs;
+    node->triplet = obs; node->next = NULL;
     if(q->last != NULL) q->last->next = node;
     else q->first = node;
     q->last = node;
@@ -155,6 +172,7 @@ void enqueue_stb(struct stb_queue *q, obtain_triplet obs, int local_time){
     struct time_triplet_node *node = malloc(sizeof(struct time_triplet_node));
     node->triplet = obs;
     node->local_time = local_time;
+    node->next = NULL;
     if(q->last != NULL) q->last->next = node;
     else q->first = node;
     q->last = node;
@@ -163,6 +181,7 @@ void enqueue_stb(struct stb_queue *q, obtain_triplet obs, int local_time){
 void enqueue_rel(struct rel_queue *q, request_set reqs){
     struct req_set_node *node = malloc(sizeof(struct req_set_node));
     node->reqs = reqs;
+    node->next = NULL;
     if(q->last != NULL) q->last->next = node;
     else q->first = node;
     q->last = node;
