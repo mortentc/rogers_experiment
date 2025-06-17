@@ -23,6 +23,7 @@ struct arr_queue {
         obtain_triplet triplet;
         struct triplet_node *next;
     } *first, *last;
+    pthread_mutex_t lock;
 };
 
 struct stb_queue {
@@ -38,6 +39,7 @@ struct rel_queue {
         request_set reqs;
         struct req_set_node *next;
     } *first, *last;
+    pthread_mutex_t lock;
 };
 
 typedef struct time_item {
@@ -124,9 +126,12 @@ void new_future(int id){
 void enqueue_req(struct arr_queue *q, obtain_triplet obs){
     struct triplet_node *node = malloc(sizeof(struct triplet_node));
     node->triplet = obs; node->next = NULL;
-    if(q->last != NULL) q->last->next = node;
+    pthread_mutex_lock(&q->lock);
+    struct triplet_node *last = q->last;
+    if(last != NULL) last->next = node;
     else q->first = node;
     q->last = node;
+    pthread_mutex_unlock(&q->lock);
 }
 
 struct region_item* lookup_region(int id){
@@ -164,7 +169,9 @@ obtain_triplet dequeue_req(struct arr_queue *q){
     #ifdef DEBUG
         printf("Trying to free memory\n");
     #endif
+    pthread_mutex_lock(&q->lock);
     free(to_free);
+    pthread_mutex_unlock(&q->lock);
     return res;
 }
 
@@ -182,9 +189,11 @@ void enqueue_rel(struct rel_queue *q, request_set reqs){
     struct req_set_node *node = malloc(sizeof(struct req_set_node));
     node->reqs = reqs;
     node->next = NULL;
+    pthread_mutex_lock(&q->lock);
     if(q->last != NULL) q->last->next = node;
     else q->first = node;
     q->last = node;
+    pthread_mutex_unlock(&q->lock);
 }
 
 request_set dequeue_rel(struct rel_queue *q){
@@ -192,7 +201,9 @@ request_set dequeue_rel(struct rel_queue *q){
     void *to_free = q->first;
     q->first = q->first->next;
     if(q->first == NULL) q->last = NULL;
+    pthread_mutex_lock(&q->lock);
     free(to_free);
+    pthread_mutex_unlock(&q->lock);
     return res;
 }
 
@@ -337,10 +348,14 @@ void* main_routine(){
 pthread_t *init_manager(){
     pthread_t *t = malloc(sizeof(pthread_t));
     pthread_create(t, NULL, main_routine, NULL);
+    pthread_mutex_init(&arrivals.lock, NULL);
+    pthread_mutex_init(&releases.lock, NULL);
     return t;
 }
 
 void destroy_manager(pthread_t *t){
     pthread_cancel(*t);
+    pthread_mutex_destroy(&arrivals.lock);
+    pthread_mutex_destroy(&releases.lock);
     free(t);
 }
