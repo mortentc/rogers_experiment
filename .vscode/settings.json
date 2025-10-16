@@ -2,6 +2,7 @@
     "sarif-viewer.connectToGithubCodeScanning": "off",
     "files.associations": {
         ".als.json": "jsonc",
-        "time.h": "c"
+        "time.h": "c",
+        "registered_functions.h": "c"
     }
 }

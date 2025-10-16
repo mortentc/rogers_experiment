@@ -36,10 +36,14 @@ int main(){
     // Setup Ubpf VM
     struct ubpf_vm* vm = ubpf_create();
     pthread_t *manager = init_manager();
-    ubpf_register(vm, 2, "obtain", &obtain);
-    int res = ubpf_register(vm, 1, "aggregate_by_pos", &aggregate_by_pos);
+    ubpf_register(vm, 1, "obtain", &obtain);
+    int res = ubpf_register(vm, 2, "aggregate_by_pos", &aggregate_by_pos);
     printf("Registering code: %s\n", res ? "failed" : "succeeded");
+    ubpf_register(vm, 3, "convert_dates", &convert_dates);
+    ubpf_register(vm, 4, "delilah_functions_tsl_filter_sequential", &delilah_functions_tsl_filter_sequential);
 
+    // Experiment 1: Baseline
+    
     // Load ebpf code
     FILE *fptr = fopen("programs/aggregate.o", "rb");
     fseek(fptr, 0L, SEEK_END);
