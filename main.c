@@ -32,6 +32,8 @@ mem_rng *obtain(request *reqs, int len){
     return res;
 };
 
+#define PRINT_TO_TERMINAL true
+
 int main(){
     // Setup Ubpf VM
     struct ubpf_vm* vm = ubpf_create();
@@ -43,6 +45,8 @@ int main(){
     ubpf_register(vm, 4, "delilah_functions_tsl_filter_sequential", &delilah_functions_tsl_filter_sequential);
 
     // Experiment 1: Baseline
+    {
+        
     
     // Load ebpf code
     FILE *fptr = fopen("programs/aggregate.o", "rb");
@@ -74,53 +78,53 @@ int main(){
     fread(input->dynamic, 4, DATA_SIZE*3/2, data);
     fclose(data);
 
-    // Prepare shared regions
-    mem_rng dummy;
-    int element_id = allocate_shared(sizeof(int) * DATA_SIZE, &dummy);
-    memcpy(dummy.ptr, input->dynamic, dummy.length);
-    int idx_id = allocate_shared(sizeof(uint32_t) * DATA_SIZE/2, &dummy);
-    memcpy(dummy.ptr, (input->dynamic)+(input->element_size), dummy.length);
-    // printf("Index values:\n");
-    // for(int i = 0; i<DATA_SIZE/2; i++)
-    //     printf("Index %d: %d, should be %d\n", i,
-    //         ((uint32_t*)dummy.ptr)[i],
-    //         ((uint32_t*)((input->dynamic)+(input->element_size)))[i]
-    //     );
-    request_set dummy_reqs;
-    request reqs[2] = {{element_id, Write}, {idx_id, Write}};
-    dummy_reqs.reqs = reqs;
-    dummy_reqs.count = 2;
-    enqueue_rel(&releases, dummy_reqs);
-    printf("Release successful\n");
+    // {
+    // // Prepare shared regions
+    // mem_rng dummy;
+    // int element_id = allocate_shared(sizeof(int) * DATA_SIZE, &dummy);
+    // memcpy(dummy.ptr, input->dynamic, dummy.length);
+    // int idx_id = allocate_shared(sizeof(uint32_t) * DATA_SIZE/2, &dummy);
+    // memcpy(dummy.ptr, (input->dynamic)+(input->element_size), dummy.length);
+    // // printf("Index values:\n");
+    // // for(int i = 0; i<DATA_SIZE/2; i++)
+    // //     printf("Index %d: %d, should be %d\n", i,
+    // //         ((uint32_t*)dummy.ptr)[i],
+    // //         ((uint32_t*)((input->dynamic)+(input->element_size)))[i]
+    // //     );
+    // request_set dummy_reqs;
+    // request reqs[2] = {{element_id, Write}, {idx_id, Write}};
+    // dummy_reqs.reqs = reqs;
+    // dummy_reqs.count = 2;
+    // enqueue_rel(&releases, dummy_reqs);
+    // printf("Release successful\n");
     
-    {
-        #include "external/delilah/delilah/programs/roger_programs/roger_aggregate_by_pos_shared.c"
-        1;
-
+    //     #include "external/delilah/delilah/programs/roger_programs/roger_aggregate_by_pos_shared.c"
+    //     ;
         
-        struct layout input;
-        input.element_req = element_id;
-        input.index_req = idx_id;
-        clock_t start, finish;
-        start = clock();
-        roger_prog(&input);
-        finish = clock();
-        printf("Time taken [Shared] %.3f ms\n", (double)(finish-start)/CLOCKS_PER_SEC*1000);
-        // printf("Result of shared: %d\n", input.result);
-    }
+    //     struct layout input;
+    //     input.element_req = element_id;
+    //     input.index_req = idx_id;
+    //     clock_t start, finish;
+    //     start = clock();
+    //     roger_prog(&input);
+    //     finish = clock();
+    //     printf("Time taken [Shared] %.3f ms\n", (double)(finish-start)/CLOCKS_PER_SEC*1000);
+    //     // printf("Result of shared: %d\n", input.result);
+    // }
 
-    FILE *log = fopen("data/results.txt", "w");
+    FILE *log = fopen("data/baseline.txt", "w");
     char out[10];
     // Execute program
     uint64_t result;
     clock_t start, finish;
     clock_t aggr_time = 0;
+    double avg_time = 0;
     for(int i = 0; i<RUNS; i++){
         start = clock();
         ubpf_exec(vm, input, data_sz, &result, NULL, 0);
         finish = clock();
-        sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
-        fwrite(out, strlen(out), 1, log);
+        // sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
+        // fwrite(out, strlen(out), 1, log);
         aggr_time += finish - start;
     }
     
@@ -131,6 +135,10 @@ int main(){
     // float finish = (float)clock();
     //printf("Execution result: %d\n", input->result);
     // printf("Length of shared region: %ld\n", result);
+    avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
+    sprintf(out, "%.3f\n", avg_time);
+    fwrite(out, strlen(out), 1, log);
+    if(PRINT_TO_TERMINAL)
     printf("Time taken [MixedVerif]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
     // printf("Result of mixed: %d\n", input->result);
 
@@ -142,14 +150,18 @@ int main(){
         start = clock();
         roger_prog(input);
         finish = clock();
-        sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
-        fwrite(out, strlen(out), 1, log);
+        // sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
+        // fwrite(out, strlen(out), 1, log);
         aggr_time += finish - start;
     }
     // sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
     // fwrite(out, strlen(out), 1, log);
     //printf("Execution result: %d\n", input->result);
-    printf("Time taken [CompVerif]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+    avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
+    sprintf(out, "%.3f\n", avg_time);
+    fwrite(out, strlen(out), 1, log);
+    if(PRINT_TO_TERMINAL)
+    printf("Time taken [CompVerif]: %.3f ms\n", avg_time);
 
     // Previous approach
     {
@@ -191,24 +203,32 @@ int main(){
             start = clock();
             ubpf_exec(vm, op, data_sz, &result, shared, DATA_SIZE*sizeof(int));
             finish = clock();
-            sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
-            fwrite(out, strlen(out), 1, log);
+            // sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
+            // fwrite(out, strlen(out), 1, log);
             aggr_time += finish - start;
         }
         // sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
         // fwrite(out, strlen(out), 1, log);
+        avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
+        sprintf(out, "%.3f\n", avg_time);
+        fwrite(out, strlen(out), 1, log);
+        if(PRINT_TO_TERMINAL)
         printf("Time taken [VmOld]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
         aggr_time = 0;
         for(int i = 0; i<RUNS; i++){
             start = clock();
             prog(op, data_sz, shared, DATA_SIZE*sizeof(int));
             finish = clock();
-            sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
-            fwrite(out, strlen(out), 1, log);
+            // sprintf(out, "%.3f\n", ((double)(finish-start))/CLOCKS_PER_SEC*1000);
+            // fwrite(out, strlen(out), 1, log);
             aggr_time += finish - start;
         }
         // sprintf(out, "%.3f\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
         // fwrite(out, strlen(out), 1, log);
+        avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
+        sprintf(out, "%.3f\n", avg_time);
+        fwrite(out, strlen(out), 1, log);
+        if(PRINT_TO_TERMINAL)
         printf("Time taken [CompOld]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
         // start = clock();
         // prog(op, data_sz, shared, DATA_SIZE*sizeof(int));
@@ -223,9 +243,10 @@ int main(){
     }
 
     // Clean up
-    destroy_manager(manager);
     free(input);
     free(ebpf);
     free(err);
+    }
+    destroy_manager(manager);
     ubpf_destroy(vm);
 }
