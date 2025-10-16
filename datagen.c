@@ -14,6 +14,6 @@ int main(){
     fwrite(indices, sizeof(uint32_t), DATA_SIZE/2, f);
     long int res = 0; for(int i = 0; i<DATA_SIZE/2;i++) res += data[indices[i]];
     // can easily overflow, but values should still agree
-    printf("Expected result %d\n", res);
+    printf("Expected result %ld\n", res);
     fclose(f);
 }
