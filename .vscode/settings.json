@@ -3,6 +3,8 @@
     "files.associations": {
         ".als.json": "jsonc",
         "time.h": "c",
-        "registered_functions.h": "c"
+        "registered_functions.h": "c",
+        "delilah.h": "c",
+        "stddef.h": "c"
     }
 }
