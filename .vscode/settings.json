@@ -5,6 +5,12 @@
         "time.h": "c",
         "registered_functions.h": "c",
         "delilah.h": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "array": "c",
+        "bitset": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "regex": "c",
+        "utility": "c"
     }
 }

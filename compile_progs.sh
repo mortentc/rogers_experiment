@@ -6,4 +6,8 @@ clang -O2 -target bpf -c external/delilah/delilah/programs/rogers_programs/obtai
 clang -O2 -target bpf -c external/delilah/delilah/programs/rogers_programs/empty.c -o programs/empty.o 
 cmake --build build
 ./datagen
-build/rogers_experiment
+build/experiment1
+build/experiment2
+build/experiment3
+build/experiment4
+build/experiment5
