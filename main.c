@@ -5,8 +5,9 @@
 #include "verified_functions.h"
 #include <time.h>
 #include <delilah.h>
-#include "external/delilah/delilah/programs/roger_programs/roger_aggregate_by_pos.c"
+#include "external/delilah/delilah/programs/rogers_programs/rogers_aggregate_by_pos.c"
 #include "external/delilah/delilah/programs/aggregate_by_pos.c"
+// #include "external/delilah/delilah/programs/convert_date.c"
 #include "resource_manager.c"
 
 #define DATA_SIZE 1000000
@@ -25,11 +26,13 @@ mem_rng *obtain(request *reqs, int len){
     triplet->res = res;
     int flag = 0; triplet->flag = &flag;
     enqueue_req(&arrivals, *triplet);
-    printf("Waiting\n");
+    // printf("Waiting\n");
     while(!flag){/* wait */}
-    printf("Waiting done\n");
+
+    // printf("Request %s\n", flag == 1 ? "successful" : "failed");
     free(triplet);
-    printf("Length of first region: %d\n", res[0].length);
+    free(set);
+    // printf("Length of first region: %d\n", res[0].length);
     return res;
 };
 
@@ -45,7 +48,6 @@ int main(){
     ubpf_register(vm, 4, "filter", &filter);
     // Experiment 1: Baseline
     {
-    
     // Load ebpf code
     FILE *fptr = fopen("programs/aggregate.o", "rb");
     fseek(fptr, 0L, SEEK_END);
@@ -97,7 +99,7 @@ int main(){
     sprintf(out, "%.3f\n", avg_time);
     fwrite(out, strlen(out), 1, log);
     if(PRINT_TO_TERMINAL)
-    printf("Time taken [MixedVerif]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+    printf("Time taken [MixedVerif]: %.3f ms\n", avg_time);
 
     // Execute compiled CSF with compiled and verified sum
     aggr_time = 0;
@@ -156,7 +158,7 @@ int main(){
         sprintf(out, "%.3f\n", avg_time);
         fwrite(out, strlen(out), 1, log);
         if(PRINT_TO_TERMINAL)
-        printf("Time taken [VmOld]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+        printf("Time taken [VmOld]: %.3f ms\n", avg_time);
 
         // Previous approach fully compiled
         // Warmup
@@ -172,7 +174,7 @@ int main(){
         sprintf(out, "%.3f\n", avg_time);
         fwrite(out, strlen(out), 1, log);
         if(PRINT_TO_TERMINAL)
-        printf("Time taken [CompOld]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+        printf("Time taken [CompOld]: %.3f ms\n", avg_time);
 
         // Clean up previous approach
         free(op);
@@ -238,7 +240,39 @@ int main(){
         sprintf(out, "%.3f\n", avg_time);
         fwrite(out, strlen(out), 1, log);
         if(PRINT_TO_TERMINAL)
-        printf("Time taken [Convert]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+        printf("Time taken [TO_YEAR]: %.3f ms\n", avg_time);
+
+        // Execute interpreted CSF with compiled and verified sum
+        input->conv = TO_MONTH;
+        // Warmup
+        for(int i = 0; i<WARMUP; i++) ubpf_exec(vm, input, data_sz, &result, NULL, 0);
+        for(int i = 0; i<RUNS; i++){
+            start = clock();
+            ubpf_exec(vm, input, data_sz, &result, NULL, 0);
+            finish = clock();
+            aggr_time += finish - start;
+        }
+        avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
+        sprintf(out, "%.3f\n", avg_time);
+        fwrite(out, strlen(out), 1, log);
+        if(PRINT_TO_TERMINAL)
+        printf("Time taken [TO_MONTH]: %.3f ms\n", avg_time);
+
+        // Execute interpreted CSF with compiled and verified sum
+        input->conv = TO_DAY;
+        // Warmup
+        for(int i = 0; i<WARMUP; i++) ubpf_exec(vm, input, data_sz, &result, NULL, 0);
+        for(int i = 0; i<RUNS; i++){
+            start = clock();
+            ubpf_exec(vm, input, data_sz, &result, NULL, 0);
+            finish = clock();
+            aggr_time += finish - start;
+        }
+        avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
+        sprintf(out, "%.3f\n", avg_time);
+        fwrite(out, strlen(out), 1, log);
+        if(PRINT_TO_TERMINAL)
+        printf("Time taken [TO_DAY]: %.3f ms\n", avg_time);
 
         // Clean up
         ubpf_unload_code(vm);
@@ -248,14 +282,122 @@ int main(){
     }
     // Experiment 4: Resource Manager
     {
-    // #include "external/delilah/delilah/programs/roger_programs/roger_aggregate_by_pos_shared.c"
-    // 1;
+    struct layout {
+        int base_req;
+        char dynamic[];
+    };
+    int data_sz = sizeof(struct layout);
+    struct layout *input = (struct layout*)malloc(data_sz);
+    mem_rng dummy;
+    int element_id = allocate_shared(sizeof(int) * DATA_SIZE, &dummy);
+    request imm[1] = {{element_id, Write}};
+    request_set immediate_release;
+    immediate_release.reqs = imm;
+    immediate_release.count = 1;
+    enqueue_rel(&releases, immediate_release);
+    input->base_req = element_id;
+
+    // Load ebpf code
+    FILE *fptr = fopen("programs/empty.o", "rb");
+    fseek(fptr, 0L, SEEK_END);
+    int sz = ftell(fptr);
+    rewind(fptr);
+    char *ebpf = (char*) malloc(sz);
+    fread(ebpf, 1, sz, fptr);
+    char *err = malloc(1024);
+    ubpf_load_elf(vm, ebpf, sz, &err);
+    if(err) printf("errors: %s\n", err);
+
+    // Declare time-keeping variables
+    FILE *log = fopen("data/manager.txt", "w");
+    char out[10];
+    uint64_t result;
+    clock_t start, finish;
+    clock_t aggr_time = 0;
+    double avg_time = 0;
+    
+    // Execute empty CSF
+    // Warmup
+    for(int i = 0; i<WARMUP; i++) ubpf_exec(vm, input, data_sz, &result, NULL, 0);
+    for(int i = 0; i<RUNS; i++){
+        start = clock();
+        ubpf_exec(vm, input, data_sz, &result, NULL, 0);
+        finish = clock();
+        aggr_time += finish - start;
+    }
+    avg_time = ((double)aggr_time)/RUNS;
+    sprintf(out, "%.3f\n", avg_time);
+    fwrite(out, strlen(out), 1, log);
+    if(PRINT_TO_TERMINAL)
+    printf("Time taken [Empty]: %.3f µs\n", avg_time);
+
+    // Clean up
+    ubpf_unload_code(vm);
+    free(ebpf);
+    free(err);
+
+    fptr = fopen("programs/obtain_1.o", "rb");
+    fseek(fptr, 0L, SEEK_END);
+    sz = ftell(fptr);
+    rewind(fptr);
+    ebpf = (char*) malloc(sz);
+    fread(ebpf, 1, sz, fptr);
+    err = malloc(1024);
+    ubpf_load_elf(vm, ebpf, sz, &err);
+    if(err) printf("errors: %s\n", err);
+
+    clock_t release_time = 0;
+    request_set dummy_reqs;
+    request reqs[1] = {{element_id, Read}};
+    dummy_reqs.reqs = reqs;
+    dummy_reqs.count = 1;
+    // Execute CSF obtaining 1 shared region
+    // Warmup
+    for(int i = 0; i<WARMUP; i++){
+        ubpf_exec(vm, input, data_sz, &result, NULL, 0);
+        enqueue_rel(&releases, dummy_reqs);
+    }
+    for(int i = 0; i<RUNS; i++){
+        start = clock();
+        ubpf_exec(vm, input, data_sz, &result, NULL, 0);
+        finish = clock();
+        aggr_time += finish - start;
+
+        start = clock();
+        enqueue_rel(&releases, dummy_reqs);
+        finish = clock();
+        release_time += finish - start;
+    }
+    avg_time = ((double)aggr_time)/RUNS;
+    sprintf(out, "%.3f\n", avg_time);
+    fwrite(out, strlen(out), 1, log);
+    if(PRINT_TO_TERMINAL)
+    printf("Time taken [Obtain1]: %.3f µs\n", avg_time);
+
+    avg_time = ((double)release_time)/RUNS;
+    sprintf(out, "%.3f\n", avg_time);
+    fwrite(out, strlen(out), 1, log);
+    if(PRINT_TO_TERMINAL)
+    printf("Time taken [Release1]: %.3f µs\n", avg_time);
+
+    // Clean up
+    ubpf_unload_code(vm);
+    free(input);
+    free(ebpf);
+    free(err);
+
     // // Prepare shared regions
+    // struct layout {
+    //     int element_req;
+    //     int index_req;
+    //     int result;
+    //     char dynamic[];
+    // } input;
     // mem_rng dummy;
     // int element_id = allocate_shared(sizeof(int) * DATA_SIZE, &dummy);
-    // memcpy(dummy.ptr, input->dynamic, dummy.length);
+    // memcpy(dummy.ptr, input.dynamic, dummy.length);
     // int idx_id = allocate_shared(sizeof(uint32_t) * DATA_SIZE/2, &dummy);
-    // memcpy(dummy.ptr, (input->dynamic)+(input->element_size), dummy.length);
+    // memcpy(dummy.ptr, (input.dynamic)+(input.element_size), dummy.length);
     // request_set dummy_reqs;
     // request reqs[2] = {{element_id, Write}, {idx_id, Write}};
     // dummy_reqs.reqs = reqs;
@@ -273,68 +415,68 @@ int main(){
     }
     // Experiment 5: Composing
     {
-        #include "external/delilah/delilah/programs/roger_programs/filter_dates.c"
-        ;
-        // Load ebpf code
-        // FILE *fptr = fopen("programs/filter_dates.o", "rb");
-        // fseek(fptr, 0L, SEEK_END);
-        // int sz = ftell(fptr);
-        // rewind(fptr);
-        // char *ebpf = (char*) malloc(sz);
-        // fread(ebpf, 1, sz, fptr);
-        // char *err = malloc(1024);
-        // ubpf_load_elf(vm, ebpf, sz, &err);
-        // if(err) printf("errors: %s\n", err);
+        // #include "external/delilah/delilah/programs/roger_programs/filter_dates.c"
+        // ;
+        // // Load ebpf code
+        // // FILE *fptr = fopen("programs/filter_dates.o", "rb");
+        // // fseek(fptr, 0L, SEEK_END);
+        // // int sz = ftell(fptr);
+        // // rewind(fptr);
+        // // char *ebpf = (char*) malloc(sz);
+        // // fread(ebpf, 1, sz, fptr);
+        // // char *err = malloc(1024);
+        // // ubpf_load_elf(vm, ebpf, sz, &err);
+        // // if(err) printf("errors: %s\n", err);
 
-        // Prepare data
-        // struct layout {
-        //     int dates_offset;
-        //     uint32_t low;
-        //     uint32_t high;
-        //     int result_start;
-        //     int result_end;
-        //     char dynamic[];
-        // };
-        int data_sz = sizeof(struct layout)+DATA_SIZE;
-        struct layout *input = (struct layout*)malloc(
-            sizeof(struct layout) + DATA_SIZE +
-            DATA_SIZE * sizeof(int) * 2 / 8
-        );
-        input->dates_offset = DATA_SIZE;
-        input->low = 1000;
-        input->high = 2000;
-        FILE *data = fopen("data/dates.dat", "rb");
-        fread(input->dynamic, 1, DATA_SIZE, data);
-        fclose(data);
+        // // Prepare data
+        // // struct layout {
+        // //     int dates_offset;
+        // //     uint32_t low;
+        // //     uint32_t high;
+        // //     int result_start;
+        // //     int result_end;
+        // //     char dynamic[];
+        // // };
+        // int data_sz = sizeof(struct layout)+DATA_SIZE;
+        // struct layout *input = (struct layout*)malloc(
+        //     sizeof(struct layout) + DATA_SIZE +
+        //     DATA_SIZE * sizeof(int) * 2 / 8
+        // );
+        // input->dates_offset = DATA_SIZE;
+        // input->low = 1000;
+        // input->high = 2000;
+        // FILE *data = fopen("data/dates.dat", "rb");
+        // fread(input->dynamic, 1, DATA_SIZE, data);
+        // fclose(data);
 
-        // Declare time-keeping variables
-        FILE *log = fopen("data/composed.txt", "w");
-        char out[10];
-        uint64_t result;
-        clock_t start, finish;
-        clock_t aggr_time = 0;
-        double avg_time = 0;
+        // // Declare time-keeping variables
+        // FILE *log = fopen("data/composed.txt", "w");
+        // char out[10];
+        // uint64_t result;
+        // clock_t start, finish;
+        // clock_t aggr_time = 0;
+        // double avg_time = 0;
         
-        // Execute interpreted CSF with compiled and verified sum
-        // Warmup
-        for(int i = 0; i<WARMUP; i++) roger_prog(input);
-        for(int i = 0; i<RUNS; i++){
-            start = clock();
-            roger_prog(input);
-            finish = clock();
-            aggr_time += finish - start;
-        }
-        avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
-        sprintf(out, "%.3f\n", avg_time);
-        fwrite(out, strlen(out), 1, log);
-        if(PRINT_TO_TERMINAL)
-        printf("Time taken [Composed]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
+        // // Execute interpreted CSF with compiled and verified sum
+        // // Warmup
+        // for(int i = 0; i<WARMUP; i++) roger_prog(input);
+        // for(int i = 0; i<RUNS; i++){
+        //     start = clock();
+        //     roger_prog(input);
+        //     finish = clock();
+        //     aggr_time += finish - start;
+        // }
+        // avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
+        // sprintf(out, "%.3f\n", avg_time);
+        // fwrite(out, strlen(out), 1, log);
+        // if(PRINT_TO_TERMINAL)
+        // printf("Time taken [Composed]: %.3f ms\n", ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS);
 
-        // Clean up
-        ubpf_unload_code(vm);
-        free(input);
-        // free(ebpf);
-        // free(err);
+        // // Clean up
+        // ubpf_unload_code(vm);
+        // free(input);
+        // // free(ebpf);
+        // // free(err);
     }
     destroy_manager(manager);
     ubpf_destroy(vm);

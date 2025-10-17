@@ -229,6 +229,9 @@ int can_be_granted(request_set *reqs, int local_time){
 } 
 
 void acquire(obtain_triplet trip){
+    #ifdef DEBUG
+        printf("Acquiring regions.\n");
+    #endif
     for(int i = 0; i<trip.reqs.count; i++){
         struct region_item *cur = lookup_region(trip.reqs.reqs[i].id);
         trip.res[i].ptr = cur->addr; trip.res[i].length = cur->length;
@@ -247,6 +250,9 @@ void handle_arrival(){
         #endif
         for(int i = 0; i<trip.reqs.count; i++){
             if (!region_exists(trip.reqs.reqs[i].id)) {
+                #ifdef DEBUG
+                    printf("Request for non-existant region\n");
+                #endif
                 *trip.flag = -1;
                 break;
             }
@@ -322,7 +328,7 @@ int allocate_shared(int length, mem_rng *res){
     char *addr = malloc(length);
     int id = new_id();
     #ifdef DEBUG
-        printf("Creating new region.\n");
+        printf("Creating new region %d.\n", id);
     #endif
     new_region(id, addr, length);
     #ifdef DEBUG
