@@ -5,7 +5,7 @@
 #include "verified_functions.h"
 #include <time.h>
 #include <delilah.h>
-#include "external/delilah/delilah/programs/filter_count.c"
+#include "external/delilah/delilah/programs/filter_sequential.c"
 #include "external/delilah/delilah/programs/rogers_programs/rogers_filter_values.c"
 #include "resource_manager.c"
 
@@ -49,7 +49,6 @@ int main(){
     ubpf_register(vm, 4, "filter", &filter);
 
     // Prepare data
-    int data_sz = sizeof(struct layout)+(DATA_SIZE*3/2)*sizeof(int);
     struct layout *input = (struct layout*)malloc(
         sizeof(struct layout) +
         sizeof(int) * DATA_SIZE * 2
@@ -84,19 +83,23 @@ int main(){
     if(PRINT_TO_TERMINAL)
     printf("Time taken [CompFilter]: %.3f ms\n", avg_time);
 
-    filter_count_op *original = (filter_count_op*)malloc(
-        sizeof(filter_count_op) + DATA_SIZE * sizeof(int)
+    filter_op *original = (filter_op*)malloc(
+        sizeof(filter_op) + DATA_SIZE * sizeof(int) * 2
     );
     original->file.size = DATA_SIZE * sizeof(uint32_t);
+    original->use_cache = false;
+    original->inplace = false;
+    original->padding_offset = sizeof(filter_op);
     original->comp_type = BWI;
     original->comp0 = 0;
     original->comp1 = 2000;
+    memcpy(((char*)original)+sizeof(filter_op)+DATA_SIZE*sizeof(int), input->dynamic, DATA_SIZE*sizeof(int));
 
     aggr_time = 0;
-    for(int i = 0; i<WARMUP; i++) prog(original, 0);
+    for(int i = 0; i<WARMUP; i++) prog(original, 0, NULL, 0);
     for(int i = 0; i<RUNS; i++){
         start = clock();
-        prog(original, 0);
+        prog(original, 0, NULL, 0);
         finish = clock();
         aggr_time += finish - start;
     }
