@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #define CORES 12
-#define MAX_REGIONS 50
+#define MAX_REGIONS 200
 // #define DEBUG
 
 typedef struct req_set {

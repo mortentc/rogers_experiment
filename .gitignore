@@ -1,7 +1,7 @@
 out/
 build/
 CMakeFiles/
-data/*
+data/*.dat
 datagen
 rogers_experiment
 ##### Windows

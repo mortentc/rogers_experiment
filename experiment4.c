@@ -77,7 +77,7 @@ int main(){
     char out[10];
     uint64_t result;
     clock_t start, finish;
-    clock_t aggr_time = 0;
+    clock_t empty_time = 0, aggr_time = 0;
     double avg_time = 0;
     
     // Execute empty CSF
@@ -87,11 +87,11 @@ int main(){
         start = clock();
         ubpf_exec(vm, input, data_sz, &result, NULL, 0);
         finish = clock();
-        aggr_time += finish - start;
+        empty_time += finish - start;
     }
-    avg_time = ((double)aggr_time)/RUNS;
-    sprintf(out, "%.3f\n", avg_time);
-    fwrite(out, strlen(out), 1, log);
+    avg_time = ((double)empty_time)/RUNS;
+    // sprintf(out, "%.3f\n", avg_time);
+    // fwrite(out, strlen(out), 1, log);
     if(PRINT_TO_TERMINAL)
     printf("Time taken [Empty]: %.3f µs\n", avg_time);
 
@@ -132,7 +132,7 @@ int main(){
         finish = clock();
         release_time += finish - start;
     }
-    avg_time = ((double)aggr_time)/RUNS;
+    avg_time = ((double)(aggr_time-empty_time))/RUNS;
     sprintf(out, "%.3f\n", avg_time);
     fwrite(out, strlen(out), 1, log);
     if(PRINT_TO_TERMINAL)
@@ -144,9 +144,25 @@ int main(){
     if(PRINT_TO_TERMINAL)
     printf("Time taken [Release1]: %.3f µs\n", avg_time);
 
+    aggr_time = 0;
+    mem_rng *mock = (mem_rng*)malloc(sizeof(mem_rng));
+    for(int i = 0; i<WARMUP; i++) allocate_shared(10, mock);
+    for(int i = 0; i<RUNS; i++){
+        start = clock();
+        allocate_shared(10, mock);
+        finish = clock();
+        aggr_time += finish - start;
+    }
+    avg_time = ((double)aggr_time)/RUNS;
+    sprintf(out, "%.3f\n", avg_time);
+    fwrite(out, strlen(out), 1, log);
+    if(PRINT_TO_TERMINAL)
+    printf("Time taken [Alloc]: %.3f µs\n", avg_time);
+
     // Clean up
     ubpf_unload_code(vm);
     free(input);
     free(ebpf);
     free(err);
+    destroy_manager(manager);
 }
