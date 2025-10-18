@@ -153,7 +153,7 @@ int main(){
             finish = clock();
             aggr_time += finish - start;
         }
-        avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/RUNS;
+        avg_time = ((double)aggr_time)/CLOCKS_PER_SEC*1000/10;
         sprintf(out, "%.3f\n", avg_time);
         fwrite(out, strlen(out), 1, log);
         if(PRINT_TO_TERMINAL)
