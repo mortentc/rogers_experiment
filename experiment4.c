@@ -107,8 +107,8 @@ int main(){
         empty_time += finish - start;
     }
     avg_time = ((double)empty_time)/RUNS;
-    // sprintf(out, "%.3f\n", avg_time);
-    // fwrite(out, strlen(out), 1, log);
+    sprintf(out, "%.3f\n", avg_time);
+    fwrite(out, strlen(out), 1, log);
     if(PRINT_TO_TERMINAL)
     printf("Time taken [Empty]: %.3f µs\n", avg_time);
 
