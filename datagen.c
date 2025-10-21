@@ -6,7 +6,7 @@
 
 int main(){
     // Generate aggregation data
-    int data[DATA_SIZE];
+    int *data = (int*)malloc(DATA_SIZE*sizeof(int));
     uint32_t indices[DATA_SIZE / 2];
     for(int i = 0; i<DATA_SIZE; i++) data[i] = rand() % 20000;
     for(int i = 0; i<DATA_SIZE/2; i++) indices[i] = rand() % DATA_SIZE;
@@ -14,6 +14,7 @@ int main(){
     fwrite(data, sizeof(int), DATA_SIZE, f);
     fwrite(indices, sizeof(uint32_t), DATA_SIZE/2, f);
     fclose(f);
+    free(data);
     // long int res = 0; for(int i = 0; i<DATA_SIZE/2;i++) res += data[indices[i]];
     // can easily overflow, but values should still agree
     // printf("Expected result %ld\n", res);
