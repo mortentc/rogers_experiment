@@ -48,16 +48,16 @@ int main(){
     ubpf_register(vm, 3, "convert_dates", &convert_dates);
     ubpf_register(vm, 4, "filter", &filter);
 
-    int data_sz = sizeof(struct layout)+DATA_SIZE;
+    int data_sz = sizeof(struct layout)+DATA_SIZE*4;
     struct layout *input = (struct layout*)malloc(
-        sizeof(struct layout) + DATA_SIZE +
-        DATA_SIZE * sizeof(int) * 2 / 8
+        sizeof(struct layout) + DATA_SIZE * 4 +
+        DATA_SIZE * 4 * sizeof(int) * 2 / 8
     );
-    input->dates_offset = DATA_SIZE;
+    input->dates_offset = DATA_SIZE * 4;
     input->low = 1000;
     input->high = 2000;
     FILE *data = fopen("data/dates.dat", "rb");
-    fread(input->dynamic, 1, DATA_SIZE, data);
+    fread(input->dynamic, 1, DATA_SIZE * 4, data);
     fclose(data);
 
     // Declare time-keeping variables
@@ -84,19 +84,19 @@ int main(){
     printf("Time taken [Composed]: %.3f ms\n", avg_time);
 
     
-    uint32_t cache_size = sizeof(struct delilah_io_state_t) + DATA_SIZE;
+    uint32_t cache_size = sizeof(struct delilah_io_state_t) + DATA_SIZE * 4;
     char *_cache = (char*)malloc(
-        cache_size + DATA_SIZE/2 + sizeof(fused_filter_conversion_op)
+        cache_size + DATA_SIZE * 2 + sizeof(fused_filter_conversion_op)
     );
     fused_filter_conversion_op *original = (fused_filter_conversion_op*)(_cache+cache_size);
     original->padding_offset = sizeof(fused_filter_conversion_op);
     original->cached_data_offset = sizeof(struct delilah_io_state_t);
-    original->file.size = DATA_SIZE;
+    original->file.size = DATA_SIZE * 4;
     original->conv_type = TO_YEAR;
     original->comp_type = BWI;
     original->comp0 = 1000;
     original->comp1 = 2000;
-    memcpy(_cache+sizeof(struct delilah_io_state_t), input->dynamic, DATA_SIZE);
+    memcpy(_cache+sizeof(struct delilah_io_state_t), input->dynamic, DATA_SIZE * 4);
 
     aggr_time = 0;
     for(int i = 0; i<WARMUP; i++) prog(original, 0, _cache, 0);

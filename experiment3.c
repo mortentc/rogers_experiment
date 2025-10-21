@@ -65,13 +65,13 @@ int main(){
         char dynamic[];
     };
     int data_sz =
-        sizeof(struct layout) + DATA_SIZE +
-        DATA_SIZE * sizeof(int) / 8;
+        sizeof(struct layout) + DATA_SIZE * 4 +
+        DATA_SIZE * sizeof(int) / 2;
     struct layout *input = (struct layout*)malloc(data_sz);
-    input->dates_offset = DATA_SIZE;
+    input->dates_offset = DATA_SIZE * 4;
     input->conv = TO_YEAR;
     FILE *data = fopen("data/dates.dat", "rb");
-    fread(input->dynamic, 1, DATA_SIZE, data);
+    fread(input->dynamic, 1, DATA_SIZE * 4, data);
     fclose(data);
 
     // Declare time-keeping variables
@@ -97,12 +97,12 @@ int main(){
     if(PRINT_TO_TERMINAL)
     printf("Time taken [TO_YEAR]: %.3f ms\n", avg_time);
 
-    conversion_op *original_input = (conversion_op*)malloc(sizeof(conversion_op)+DATA_SIZE);
-    memcpy(original_input+1, input->dynamic, DATA_SIZE);
+    conversion_op *original_input = (conversion_op*)malloc(sizeof(conversion_op)+DATA_SIZE*4);
+    memcpy(original_input+1, input->dynamic, DATA_SIZE*4);
     original_input->use_cache = false;
     original_input->reuse_data = true;
     original_input->padding_offset = sizeof(conversion_op);
-    original_input->file.size = DATA_SIZE;
+    original_input->file.size = DATA_SIZE*4;
     original_input->inplace = true;
     original_input->conv_type = TO_YEAR;
 
@@ -182,7 +182,7 @@ int main(){
     sprintf(out, "%.3f\n", avg_time);
     fwrite(out, strlen(out), 1, log);
     if(PRINT_TO_TERMINAL)
-    printf("Time taken [TO_YEAR][OLD]: %.3f ms\n", avg_time);
+    printf("Time taken [TO_DAY][OLD]: %.3f ms\n", avg_time);
 
     // Clean up
     ubpf_unload_code(vm);

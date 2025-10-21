@@ -19,9 +19,9 @@ int main(){
     // printf("Expected result %ld\n", res);
 
     // Generate ASCII digits
-    char dates[DATA_SIZE];
-    for(int i = 0; i<DATA_SIZE; i++) dates[i] = rand() % 10 + '0';
+    char dates[DATA_SIZE*4];
+    for(int i = 0; i<DATA_SIZE*4; i++) dates[i] = rand() % 10 + '0';
     FILE *g = fopen("data/dates.dat", "wb");
-    fwrite(dates, 1, DATA_SIZE, f);
+    fwrite(dates, 1, DATA_SIZE*4, f);
     fclose(g);
 }
