@@ -5,7 +5,7 @@ struct layout {
     char dynamic[];
 };
 
-int roger_prog(void *context) {
+int rogers_prog(void *context) {
     struct layout *info = (struct layout *)context;
     struct req reqs[1];
     reqs[0].id = info->base_req; reqs[0].p = Read;

@@ -8,7 +8,7 @@ struct layout {
     char dynamic[];
 };
 
-int roger_prog(void *context) {
+int rogers_prog(void *context) {
 
     struct layout *info = (struct layout *)context;
     struct req *reqs;

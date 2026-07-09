@@ -106,10 +106,10 @@ int main(){
     // Execute compiled CSF with compiled and verified sum
     aggr_time = 0;
     // Warmup
-    for(int i = 0; i<WARMUP; i++) roger_prog(input);
+    for(int i = 0; i<WARMUP; i++) rogers_prog(input);
     for(int i = 0; i<RUNS; i++){
         start = clock();
-        roger_prog(input);
+        rogers_prog(input);
         finish = clock();
         aggr_time += finish - start;
     }
@@ -469,7 +469,7 @@ int main(){
     // input.index_req = idx_id;
     // clock_t start, finish;
     // start = clock();
-    // roger_prog(&input);
+    // rogers_prog(&input);
     // finish = clock();
     // printf("Time taken [Shared] %.3f ms\n", (double)(finish-start)/CLOCKS_PER_SEC*1000);
     }
@@ -519,10 +519,10 @@ int main(){
         
         // Execute interpreted CSF with compiled and verified sum
         // Warmup
-        for(int i = 0; i<WARMUP; i++) roger_prog(input);
+        for(int i = 0; i<WARMUP; i++) rogers_prog(input);
         for(int i = 0; i<RUNS; i++){
             start = clock();
-            roger_prog(input);
+            rogers_prog(input);
             finish = clock();
             aggr_time += finish - start;
         }

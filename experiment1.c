@@ -103,10 +103,10 @@ int main(){
     // Execute compiled CSF with compiled and verified sum
     aggr_time = 0;
     // Warmup
-    for(int i = 0; i<WARMUP; i++) roger_prog(input);
+    for(int i = 0; i<WARMUP; i++) rogers_prog(input);
     for(int i = 0; i<RUNS; i++){
         start = clock();
-        roger_prog(input);
+        rogers_prog(input);
         finish = clock();
         aggr_time += finish - start;
     }
