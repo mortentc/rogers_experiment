@@ -5,7 +5,7 @@
 #include "verified_functions.h"
 #include <time.h>
 #include <delilah.h>
-#include "external/delilah/delilah/programs/convert_date.c"
+#include "functions/convert_date.c"
 #include "resource_manager.c"
 
 #define DATA_SIZE 1000000

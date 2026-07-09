@@ -5,8 +5,8 @@
 #include "verified_functions.h"
 #include <time.h>
 #include <delilah.h>
-#include "external/delilah/delilah/programs/rogers_programs/filter_dates.c"
-#include "external/delilah/delilah/programs/filter_convert_date.c"
+#include "functions/filter_dates.c"
+#include "functions/filter_convert_date.c"
 #include "resource_manager.c"
 
 #define DATA_SIZE 1000000

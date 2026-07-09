@@ -5,8 +5,8 @@
 #include "verified_functions.h"
 #include <time.h>
 #include <delilah.h>
-#include "external/delilah/delilah/programs/rogers_programs/rogers_aggregate_by_pos.c"
-#include "external/delilah/delilah/programs/aggregate_by_pos.c"
+#include "functions/rogers_aggregate_by_pos.c"
+#include "functions/aggregate_by_pos.c"
 #include "resource_manager.c"
 
 #define DATA_SIZE 1000000

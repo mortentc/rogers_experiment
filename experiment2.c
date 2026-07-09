@@ -5,8 +5,8 @@
 #include "verified_functions.h"
 #include <time.h>
 #include <delilah.h>
-#include "external/delilah/delilah/programs/filter_sequential.c"
-#include "external/delilah/delilah/programs/rogers_programs/rogers_filter_values.c"
+#include "functions/filter_sequential.c"
+#include "functions/rogers_filter_values.c"
 #include "resource_manager.c"
 
 #define DATA_SIZE 1000000
