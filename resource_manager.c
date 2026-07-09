@@ -1,4 +1,4 @@
-#include "external/delilah/include/verified_functions.h"
+#include "include/verified_functions.h"
 #include <pthread.h>
 #include <malloc.h>
 #include <stdlib.h>
